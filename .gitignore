@@ -1,0 +1,36 @@
+# Frontend
+node_modules/
+dist/
+frontend/.env
+
+# Backend
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+backend/.env
+
+# Test and tool caches
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Operating systems
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
