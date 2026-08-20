@@ -42,9 +42,10 @@ def test_community_report_response_structure() -> None:
     }
 
     assert all(required_fields <= report.keys() for report in reports)
-    assert all(report["data_source"] == "synthetic" for report in reports)
-    assert all(report["evidence_type"] == "DEMO_PHOTO_PLACEHOLDER" for report in reports)
-    assert all(report["photo_url"] is None for report in reports)
+    synthetic_reports = [report for report in reports if report["data_source"] == "synthetic"]
+    assert len(synthetic_reports) >= 5
+    assert all(report["evidence_type"] == "DEMO_PHOTO_PLACEHOLDER" for report in synthetic_reports)
+    assert all(report["photo_url"] is None for report in synthetic_reports)
     assert any(report["report_count_nearby"] > 1 for report in reports)
     assert any(report["category"] == "STAGNANT_WATER" for report in reports)
     assert any(report["verification_status"] == "VERIFIED_HAZARD" for report in reports)

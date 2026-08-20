@@ -42,13 +42,18 @@ function Sidebar({ activePage, onNavigate, mobileOpen, onClose }) {
                 >
                   <Icon className="h-5 w-5" name={item.icon} />
                   {item.label}
-                  {!["overview", "community"].includes(item.id) && <span className={`ml-auto rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide ${active ? "bg-slate-950/12 text-slate-800" : "bg-white/7 text-slate-500"}`}>2B</span>}
                 </a>
               </li>
             );
           })}
         </ul>
       </nav>
+
+      <div className="px-4 pb-2">
+        <a className="flex items-center gap-3 rounded-xl border border-teal-400/20 bg-teal-400/10 px-3 py-3 text-sm font-bold text-teal-200 hover:bg-teal-400/20" href="#/citizen-report">
+          <Icon className="h-5 w-5" name="community" /> Citizen report form <span className="ml-auto">↗</span>
+        </a>
+      </div>
 
       <div className="m-4 rounded-2xl border border-white/10 bg-white/5 p-4">
         <div className="flex items-center gap-2 text-teal-300">
@@ -81,7 +86,7 @@ function DashboardLayout({ activePage, onNavigate, connection, children }) {
                 <span className="hidden rounded-md bg-slate-900 px-2 py-1 text-[10px] font-bold tracking-[0.14em] text-white sm:inline">SIH25001</span>
                 <p className="truncate text-sm font-bold text-slate-900 sm:text-base">Water-Borne Disease Early Warning System</p>
               </div>
-              <p className="mt-1 hidden text-xs text-slate-500 sm:block">Government monitoring dashboard · Phase 2A + Community Signals</p>
+              <p className="mt-1 hidden text-xs text-slate-500 sm:block">Government monitoring dashboard · Phase 2B interactive operations</p>
             </div>
             <div className="ml-auto flex items-center gap-3">
               <span className="hidden rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 md:inline">Demo / Synthetic Data</span>

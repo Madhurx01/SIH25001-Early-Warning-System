@@ -1,55 +1,34 @@
 import { useCallback, useEffect, useState } from "react";
 
 import DashboardLayout from "./components/Layout/DashboardLayout.jsx";
+import CitizenReportPage from "./pages/CitizenReportPage.jsx";
 import CommunityReportsPage from "./pages/CommunityReportsPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
-import PlaceholderPage from "./pages/PlaceholderPage.jsx";
-import { getHealth } from "./services/api.js";
+import OutlookPage from "./pages/OutlookPage.jsx";
+import ReportStatusPage from "./pages/ReportStatusPage.jsx";
+import SurveillancePage from "./pages/SurveillancePage.jsx";
+import VillageDetailPage from "./pages/VillageDetailPage.jsx";
+import VillagesPage from "./pages/VillagesPage.jsx";
 
-const validPages = new Set(["overview", "community", "villages", "surveillance", "outlook"]);
-
-function getPageFromHash() {
-  const page = window.location.hash.replace(/^#\/?/, "") || "overview";
-  return validPages.has(page) ? page : "overview";
-}
+function getRoute() { return window.location.hash.replace(/^#\/?/, "").split("?")[0] || "overview"; }
 
 function App() {
-  const [activePage, setActivePage] = useState(getPageFromHash);
+  const [route, setRoute] = useState(getRoute);
   const [connection, setConnection] = useState("checking");
-
-  useEffect(() => {
-    function handleHashChange() { setActivePage(getPageFromHash()); }
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
-
-  useEffect(() => {
-    if (["overview", "community"].includes(activePage)) return undefined;
-
-    const controller = new AbortController();
-    setConnection("checking");
-    getHealth(controller.signal)
-      .then(() => setConnection("connected"))
-      .catch((error) => {
-        if (error.name !== "AbortError") setConnection("unavailable");
-      });
-
-    return () => controller.abort();
-  }, [activePage]);
-
-  const handleConnectionChange = useCallback((status) => setConnection(status), []);
-
-  return (
-    <DashboardLayout activePage={activePage} connection={connection} onNavigate={setActivePage}>
-      {activePage === "overview" ? (
-        <DashboardPage onConnectionChange={handleConnectionChange} />
-      ) : activePage === "community" ? (
-        <CommunityReportsPage onConnectionChange={handleConnectionChange} />
-      ) : (
-        <PlaceholderPage page={activePage} />
-      )}
-    </DashboardLayout>
-  );
+  useEffect(() => { const handler = () => setRoute(getRoute()); window.addEventListener("hashchange", handler); return () => window.removeEventListener("hashchange", handler); }, []);
+  const onConnectionChange = useCallback((status) => setConnection(status), []);
+  if (route === "citizen-report") return <CitizenReportPage/>;
+  if (route === "report-status") return <ReportStatusPage/>;
+  const [page, villageId] = route.split("/");
+  const activePage = ["overview", "community", "villages", "surveillance", "outlook"].includes(page) ? page : "overview";
+  let content;
+  if (activePage === "overview") content = <DashboardPage onConnectionChange={onConnectionChange}/>;
+  else if (activePage === "community") content = <CommunityReportsPage onConnectionChange={onConnectionChange}/>;
+  else if (activePage === "villages" && villageId) content = <VillageDetailPage villageId={decodeURIComponent(villageId)} onConnectionChange={onConnectionChange}/>;
+  else if (activePage === "villages") content = <VillagesPage onConnectionChange={onConnectionChange}/>;
+  else if (activePage === "surveillance") content = <SurveillancePage onConnectionChange={onConnectionChange}/>;
+  else content = <OutlookPage onConnectionChange={onConnectionChange}/>;
+  return <DashboardLayout activePage={activePage} connection={connection} onNavigate={setRoute}>{content}</DashboardLayout>;
 }
 
 export default App;

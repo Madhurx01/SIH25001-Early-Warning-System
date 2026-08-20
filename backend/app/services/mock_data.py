@@ -9,6 +9,27 @@ from copy import deepcopy
 from typing import Any
 
 
+# Clearly synthetic coordinates placed around the named Northeast India demo
+# districts. They are map demonstration points, not surveyed village locations.
+DEMO_COORDINATES: dict[str, tuple[float, float]] = {
+    "ASM-CCH-001": (24.78, 92.72),
+    "ASM-CCH-002": (24.70, 92.80),
+    "ASM-HLK-003": (24.67, 92.58),
+    "ASM-HLK-004": (24.80, 92.70),
+    "ASM-KRG-005": (24.86, 92.36),
+    "ASM-KRG-006": (24.73, 92.28),
+    "MNP-IMP-007": (24.82, 93.01),
+    "MNP-IMP-008": (24.76, 94.05),
+    "MNP-UKL-009": (25.10, 94.36),
+    "MNP-UKL-010": (25.02, 94.22),
+    "MIZ-AIZ-011": (23.73, 92.72),
+    "MIZ-AIZ-012": (23.66, 92.78),
+    "TRP-DLI-013": (23.85, 91.98),
+    "TRP-DLI-014": (23.95, 92.04),
+    "TRP-UNK-015": (24.18, 92.03),
+}
+
+
 DEMO_VILLAGES: list[dict[str, Any]] = [
     {
         "id": "ASM-CCH-001",
@@ -352,6 +373,9 @@ DEMO_TASKS = [
         ],
         "source_type": "COMMUNITY_REPORT",
         "community_report_id": "CR-002",
+        "task_type": "FIELD_INSPECTION",
+        "status": "OPEN",
+        "created_at": "2026-08-19T16:05:00Z",
         "data_source": "synthetic",
     },
     {
@@ -361,6 +385,9 @@ DEMO_TASKS = [
         "village_name": "Demo Village 01",
         "district": "Cachar",
         "action": "Test community water source",
+        "task_type": "WATER_TEST",
+        "status": "OPEN",
+        "created_at": "2026-08-19T14:20:00Z",
         "reasons": ["High modeled risk", "Water data is stale", "Flood signal is elevated"],
         "data_source": "synthetic",
     },
@@ -371,6 +398,9 @@ DEMO_TASKS = [
         "village_name": "Demo Village 03",
         "district": "Hailakandi",
         "action": "Request health-worker report",
+        "task_type": "HEALTH_REPORT",
+        "status": "OPEN",
+        "created_at": "2026-08-19T13:10:00Z",
         "reasons": ["High risk with low confidence", "Health report is missing", "Water data is stale"],
         "data_source": "synthetic",
     },
@@ -381,6 +411,9 @@ DEMO_TASKS = [
         "village_name": "Demo Village 05",
         "district": "Karimganj",
         "action": "Inspect chlorination records",
+        "task_type": "RECORD_REVIEW",
+        "status": "ASSIGNED",
+        "created_at": "2026-08-18T11:30:00Z",
         "reasons": ["Preparedness alert active", "Water test exceeds demo freshness rule"],
         "data_source": "synthetic",
     },
@@ -391,6 +424,9 @@ DEMO_TASKS = [
         "village_name": "Demo Village 07",
         "district": "Imphal East",
         "action": "Collect baseline field evidence",
+        "task_type": "FIELD_EVIDENCE",
+        "status": "IN_PROGRESS",
+        "created_at": "2026-08-18T09:45:00Z",
         "reasons": ["Water and health reports are missing", "Assessment confidence is low"],
         "data_source": "synthetic",
     },
@@ -401,6 +437,9 @@ DEMO_TASKS = [
         "village_name": "Demo Village 09",
         "district": "Ukhrul",
         "action": "Request health-worker verification",
+        "task_type": "HEALTH_REPORT",
+        "status": "OPEN",
+        "created_at": "2026-08-17T15:15:00Z",
         "reasons": ["Health report is missing", "Assessment confidence is low"],
         "data_source": "synthetic",
     },
@@ -420,12 +459,21 @@ def get_villages(
         villages = [item for item in villages if item["district"].casefold() == district.casefold()]
     if needs_verification is not None:
         villages = [item for item in villages if item["needs_verification"] is needs_verification]
-    return deepcopy(sorted(villages, key=lambda item: item["risk_score"], reverse=True))
+    result = deepcopy(sorted(villages, key=lambda item: item["risk_score"], reverse=True))
+    for item in result:
+        item["latitude"], item["longitude"] = DEMO_COORDINATES[item["id"]]
+        item["location_note"] = "Demo village location / synthetic coordinates"
+    return result
 
 
 def get_village(village_id: str) -> dict[str, Any] | None:
     village = next((item for item in DEMO_VILLAGES if item["id"] == village_id), None)
-    return deepcopy(village) if village else None
+    if not village:
+        return None
+    result = deepcopy(village)
+    result["latitude"], result["longitude"] = DEMO_COORDINATES[village_id]
+    result["location_note"] = "Demo village location / synthetic coordinates"
+    return result
 
 
 def get_overview() -> dict[str, int | str]:

@@ -11,7 +11,7 @@ from app.routes.villages import router as villages_router
 app = FastAPI(
     title="SIH25001 Early Warning API",
     description="Synthetic monitoring API for the SIH25001 early warning system.",
-    version="0.2.1",
+    version="0.3.0",
 )
 
 app.add_middleware(
