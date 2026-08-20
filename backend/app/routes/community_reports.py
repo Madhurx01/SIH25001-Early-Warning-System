@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -18,6 +18,7 @@ from app.services.community_reports import (
     validate_report_fields,
     validate_and_store_image,
 )
+from app.services.auth import GOVT_OFFICER, require_roles
 
 
 router = APIRouter(prefix="/api", tags=["community reports"])
@@ -28,7 +29,9 @@ class CommunityStatusUpdate(BaseModel):
 
 
 @router.get("/community-reports")
-async def list_community_reports() -> list[dict[str, Any]]:
+async def list_community_reports(
+    _: dict[str, Any] = Depends(require_roles(GOVT_OFFICER)),
+) -> list[dict[str, Any]]:
     return get_community_reports()
 
 
@@ -65,7 +68,10 @@ async def community_report_status(report_id: str) -> dict[str, Any]:
 
 
 @router.get("/community-reports/{report_id}/photo")
-async def community_report_photo(report_id: str) -> FileResponse:
+async def community_report_photo(
+    report_id: str,
+    _: dict[str, Any] = Depends(require_roles(GOVT_OFFICER)),
+) -> FileResponse:
     try:
         path, content_type = get_photo(report_id)
         return FileResponse(path, media_type=content_type, filename=f"community-evidence{path.suffix}")
@@ -74,7 +80,10 @@ async def community_report_photo(report_id: str) -> FileResponse:
 
 
 @router.get("/community-reports/{report_id}")
-async def community_report_detail(report_id: str) -> dict[str, Any]:
+async def community_report_detail(
+    report_id: str,
+    _: dict[str, Any] = Depends(require_roles(GOVT_OFFICER)),
+) -> dict[str, Any]:
     try:
         return get_community_report(report_id)
     except ReportNotFoundError as error:
@@ -82,7 +91,11 @@ async def community_report_detail(report_id: str) -> dict[str, Any]:
 
 
 @router.patch("/community-reports/{report_id}/status")
-async def patch_community_report_status(report_id: str, update: CommunityStatusUpdate) -> dict[str, Any]:
+async def patch_community_report_status(
+    report_id: str,
+    update: CommunityStatusUpdate,
+    _: dict[str, Any] = Depends(require_roles(GOVT_OFFICER)),
+) -> dict[str, Any]:
     try:
         return update_report_status(report_id, update.status)
     except ReportNotFoundError as error:

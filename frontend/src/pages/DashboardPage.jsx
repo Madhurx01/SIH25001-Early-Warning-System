@@ -103,7 +103,7 @@ function DashboardPage({ onConnectionChange }) {
       <div className="mt-6"><CommunitySignals compact reports={communityReports} /></div>
 
       <div className="mt-6"><PreparednessOutlook forecast={forecast} /></div>
-      <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400"><p>SIH25001 · Phase 2A Government Monitoring Dashboard</p><p>Demo / Synthetic Data · No ML model integrated</p></footer>
+      <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-5 text-xs text-slate-400"><p>AAPTIRAKSHAK · Government Monitoring Dashboard</p><p>Demo / Synthetic Data · No ML model integrated</p></footer>
     </div>
   );
 }

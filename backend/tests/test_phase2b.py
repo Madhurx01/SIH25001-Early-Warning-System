@@ -4,13 +4,18 @@ from httpx import ASGITransport, AsyncClient, Response
 
 from app.main import app
 from app.services import community_reports as community_report_service
+from app.services.auth import DEMO_USERS, create_access_token, public_user
+
+
+OFFICER_HEADERS = {"Authorization": f"Bearer {create_access_token(public_user(DEMO_USERS[0]))}"}
 
 
 def request(method: str, path: str, **kwargs) -> Response:
     async def make_request() -> Response:
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-            return await client.request(method, path, **kwargs)
+            headers = {**OFFICER_HEADERS, **kwargs.pop("headers", {})}
+            return await client.request(method, path, headers=headers, **kwargs)
     return asyncio.run(make_request())
 
 

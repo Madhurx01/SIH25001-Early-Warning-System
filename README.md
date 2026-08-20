@@ -1,36 +1,50 @@
-# SIH25001 Early Warning System
+# AAPTIRAKSHAK
 
-Smart Community Health Monitoring and Early Warning System prototype for rural Northeast India.
+**Community Water Health Early Warning & Response System**
 
-**Current status:** Phase 2B — Interactive Surveillance & Citizen Reporting.
+A hackathon prototype for rural Northeast India that combines a protected government operations dashboard, role-specific field-worker portals, and public environmental hazard reporting. Originally developed against Smart India Hackathon problem statement SIH25001.
 
-All village locations, scores, evidence, trends, tasks, thresholds, and seeded reports are synthetic demonstration data. No ML model is integrated. Risk scores are illustrative outbreak-concern values, not medically validated predictions. Community reports—whether unverified or verified—never directly modify current risk classifications.
+All villages, locations, users, scores, reports, trends, tasks, thresholds, and evidence are synthetic demonstration data. Risk values are illustrative and not medically validated predictions. Staff and community submissions do not automatically modify disease-risk scores.
 
-## Phase 2B features
+## Phase 2C features
 
-- Searchable/filterable/sortable village directory with a React-Leaflet/OpenStreetMap demo map and an accessible list fallback.
-- Village operational detail with separate risk and confidence, prioritization drivers, freshness states, village trend, community signals, and tasks.
-- Runtime verification workflow: `OPEN → ASSIGNED → IN_PROGRESS → VERIFIED → CLOSED`.
-- Government incident review with `UNVERIFIED`, `UNDER_REVIEW`, `VERIFIED_HAZARD`, `REJECTED`, and `DUPLICATE` states.
-- Mobile-first citizen form with optional photo capture/preview, permission-based geolocation, manual village fallback, submission receipt, and report-status lookup.
-- Four-week preparedness page and closed-loop workflow explanation with future model integration clearly separated.
-- Stable loading, error, offline/API-unavailable, keyboard, form-label, and non-colour-only status behavior.
+- One AAPTIRAKSHAK Staff Portal login with Argon2-hashed demo credentials and signed JWT access tokens.
+- Backend-enforced roles: `GOVT_OFFICER`, `ASHA_WORKER`, and `WATER_WORKER`.
+- Protected government Overview, Villages, Village Detail, Surveillance, Outlook, Community Reports, and Staff Reports routes/APIs.
+- ASHA portal with assigned villages, assigned health tasks, symptom-surveillance submission, field notes, freshness reminders, and personal submission history.
+- Water Operations portal with assigned villages/tasks, water tests and infrastructure inspections, explicit `NOT_TESTED` bacterial results, and personal submission history.
+- Government Staff Reports view for health and water field submissions.
+- Public, minimally identifying citizen hazard submission, optional photo/location evidence, report receipt, and status lookup.
+- Role/category/assignee checks for task status changes and government-only task assignment.
+- Runtime incident clustering and official government review states: `UNVERIFIED`, `UNDER_REVIEW`, `VERIFIED_HAZARD`, `REJECTED`, and `DUPLICATE`.
 
-Dengue and malaria are vector-borne diseases. Standing water is represented only as a potential mosquito-breeding/environmental hazard requiring verification; citizen photos are not analyzed or used for diagnosis.
-
-## Architecture
+## Authentication architecture
 
 ```text
-React + Vite + Tailwind + React-Leaflet
-                ↓ REST
-             FastAPI
-                ↓
-     service / repository layer
-                ↓
- synthetic seeds + runtime-only demo state
+React AuthProvider
+  ├─ token in browser localStorage (demo limitation)
+  ├─ startup validation with GET /api/auth/me
+  ├─ Bearer header on protected API calls
+  └─ automatic logout and privileged-view removal on HTTP 401
+                         ↓
+FastAPI HTTP Bearer dependency
+  ├─ signed JWT (secret/environment configured)
+  ├─ current-user lookup in demo repository
+  ├─ reusable role dependencies
+  └─ task/report scope checks in backend services
 ```
 
-No production database, authentication, OTP, external government integration, medical diagnosis, computer vision, notification service, or real ML model is included.
+Passwords and hashes are never returned by the API. The committed demo user repository contains Argon2 hashes only. When `JWT_SECRET_KEY` is absent, the backend creates a process-random fallback; configure `.env` for stable sessions across reloads.
+
+## Demo credentials
+
+These obvious credentials are for hackathon testing only and must not be used in production.
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Government Officer | `officer@aaptirakshak.demo` | `Officer@123` |
+| ASHA Worker | `asha@aaptirakshak.demo` | `Asha@123` |
+| Water Worker | `water@aaptirakshak.demo` | `Water@123` |
 
 ## Run locally (Windows PowerShell)
 
@@ -43,6 +57,13 @@ cd backend
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Paste the generated value after `JWT_SECRET_KEY=` in `backend/.env`, then start the API:
+
+```powershell
 python -m uvicorn app.main:app --reload
 ```
 
@@ -57,10 +78,12 @@ npm run dev
 
 Open:
 
-- Government dashboard: http://localhost:5173/#/overview
-- Villages: http://localhost:5173/#/villages
-- Citizen report: http://localhost:5173/#/citizen-report
+- Staff login: http://localhost:5173/#/login
+- Public citizen report: http://localhost:5173/#/citizen-report
+- Public status lookup: http://localhost:5173/#/report-status
 - FastAPI docs: http://localhost:8000/docs
+
+After login, Government is routed to `#/overview`, ASHA to `#/asha`, and Water Worker to `#/water-operations`.
 
 Run verification:
 
@@ -69,6 +92,7 @@ cd backend
 python -m pytest
 
 cd ..\frontend
+npm test
 npm run build
 
 cd ..
@@ -77,41 +101,54 @@ git diff --check
 
 If PowerShell blocks virtual-environment activation, use `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` for that terminal only.
 
-## API
+## API boundary
 
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `/api/health` | Service health |
-| `GET` | `/api/dashboard/overview` | Existing overview totals |
-| `GET` | `/api/dashboard/forecast` | Four-week preparedness outlook |
-| `GET` | `/api/dashboard/rainfall-disease-trend` | Existing synthetic trend |
-| `GET` | `/api/villages` | Village summaries and optional filters |
-| `GET` | `/api/villages/{village_id}` | Enriched operational detail |
-| `GET` | `/api/villages/{village_id}/trend` | Village-specific synthetic trend |
-| `GET` | `/api/villages/{village_id}/community-reports` | Village incident clusters |
-| `GET` | `/api/villages/{village_id}/tasks` | Village verification tasks |
-| `GET` | `/api/tasks` | Verification task list |
-| `GET` | `/api/tasks/{task_id}` | Task detail |
-| `PATCH` | `/api/tasks/{task_id}/status` | Validated workflow transition |
-| `GET` | `/api/community-reports` | Government incident list |
-| `GET` | `/api/community-reports/{report_id}` | Incident/report detail |
-| `POST` | `/api/community-reports` | Multipart citizen submission |
-| `PATCH` | `/api/community-reports/{report_id}/status` | Government review state |
-| `GET` | `/api/community-reports/{report_id}/status` | Privacy-minimal citizen lookup |
-| `GET` | `/api/community-reports/{report_id}/photo` | Stored evidence via safe API route |
+Public:
 
-`GET /api/villages` preserves the Phase 2A `alert_level`, `district`, and `needs_verification` filters. Existing Phase 2A endpoints remain compatible; additions are additive.
+- `GET /api/health`
+- `GET /api/public/villages` (ID/name/district/state only)
+- `POST /api/community-reports`
+- `GET /api/community-reports/{report_id}/status`
+- `POST /api/auth/login`
+
+Authenticated staff:
+
+- `GET /api/auth/me`
+- `GET /api/staff/assigned-villages`
+- `GET /api/tasks` (role/assignment filtered)
+- `GET /api/tasks/{task_id}` (role/assignment checked)
+- `PATCH /api/tasks/{task_id}/status` (role/category/assignment checked)
+
+ASHA or Government:
+
+- `GET /api/health-reports`
+- `POST /api/health-reports`
+
+Water Worker or Government:
+
+- `GET /api/water-reports`
+- `POST /api/water-reports`
+
+Government only:
+
+- `/api/dashboard/*`
+- `/api/villages/*`
+- `GET /api/community-reports`
+- `GET /api/community-reports/{report_id}`
+- `GET /api/community-reports/{report_id}/photo`
+- `PATCH /api/community-reports/{report_id}/status`
+- `PATCH /api/tasks/{task_id}/assignment`
+
+Missing or invalid authentication returns `401`; an authenticated user without the required permission receives `403`.
 
 ## Photo handling
 
-Citizen photos are optional. The backend accepts JPEG, PNG, WebP, and GIF content up to 5 MB, checks both MIME type and a file signature, discards the original filename, generates a random storage name, and serves evidence through an API route without exposing filesystem paths. Files go to ignored `backend/runtime_uploads/`. This is hackathon-only local storage and is not suitable for production privacy, retention, or access-control requirements.
+Citizen photos are optional. The backend accepts JPEG, PNG, WebP, and GIF content up to 5 MB, verifies MIME type and file signature, discards original filenames, generates random storage names, and serves evidence through a government-protected API route. Runtime files go to ignored `backend/runtime_uploads/`.
 
-## Demo clustering and persistence
+## Prototype limitations
 
-A new report joins an incident when it has the same village and category, is within 24 hours, and—when both reports provide coordinates—is within 500 metres using Haversine distance. These are demonstration rules, not scientifically validated thresholds. The government list represents incident clusters so duplicate submissions are not presented as separate physical hazards.
-
-Tasks, report statuses, clusters, and citizen submissions live in process memory and reset whenever the backend restarts. Uploaded files are runtime artifacts and are not committed; orphan/retention cleanup would be required for production.
-
-## Deployment limitations
-
-A real government/public-health deployment requires authentication and authorization, consent and privacy controls, encryption and retention policies, durable production storage, audit logs, official datasets/APIs, validated models and thresholds, operational ownership, and security review. Community evidence may become an input only to a future governed evidence/model cycle; it does not directly change risk here.
+- Demo users, tasks, status changes, staff reports, citizen reports, and clusters use in-memory repositories. **Demo session data resets when the backend restarts.** Uploaded runtime files are not durable records.
+- Browser `localStorage` is acceptable for this hackathon prototype but a production deployment needs hardened cookie/session handling, CSRF/XSS controls, key rotation, revocation, audit logging, rate limiting, and account lifecycle management.
+- There is no production database, government SSO, OTP, citizen account, durable audit trail, or staff account administration.
+- There are no real IMD/CWC/IHIP/WQMIS integrations, validated ML models, medical diagnosis, comprehensive pathogen claims, notifications, or automatic risk recalculation.
+- A real deployment requires privacy/retention governance, encryption, official integrations, validated thresholds/models, accessibility and security review, operational ownership, and clinical/public-health oversight.

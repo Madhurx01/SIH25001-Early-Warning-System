@@ -1,11 +1,16 @@
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.services.mock_data import get_forecast, get_overview, get_rainfall_disease_trend
+from app.services.auth import GOVT_OFFICER, require_roles
 
 
-router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
+router = APIRouter(
+    prefix="/api/dashboard",
+    tags=["dashboard"],
+    dependencies=[Depends(require_roles(GOVT_OFFICER))],
+)
 
 
 @router.get("/overview")

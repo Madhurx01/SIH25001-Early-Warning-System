@@ -1,12 +1,12 @@
 {
-  "name": "sih25001-frontend",
+  "name": "aaptirakshak-frontend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test": "node --test tests/citizenReport.test.js tests/communityReportPresentation.test.js tests/requestLifecycle.test.js",
+    "test": "node --test tests/*.test.js",
     "preview": "vite preview"
   },
   "dependencies": {

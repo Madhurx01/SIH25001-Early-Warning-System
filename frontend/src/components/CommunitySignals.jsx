@@ -1,6 +1,9 @@
+import { useEffect, useRef, useState } from "react";
+
 import Icon from "./Icon.jsx";
-import { communityPhotoUrl } from "../services/api.js";
+import { getCommunityPhoto } from "../services/api.js";
 import { representativePhotoAttribution } from "../utils/communityReportPresentation.js";
+import { openEvidencePhotoViewer } from "../utils/evidencePhotoLifecycle.js";
 
 const categoryLabels = {
   STAGNANT_WATER: "Stagnant water",
@@ -40,6 +43,38 @@ function formatReportedAt(value) {
     hour: "numeric",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function ProtectedEvidenceButton({ report }) {
+  const requestRef = useRef(null);
+  const [state, setState] = useState({ busy: false, error: "" });
+  useEffect(() => () => requestRef.current?.abort(), []);
+
+  async function viewPhoto() {
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    setState({ busy: true, error: "" });
+    try {
+      await openEvidencePhotoViewer({
+        path: report.photo_url,
+        signal: controller.signal,
+        loadPhoto: getCommunityPhoto,
+      });
+      if (!controller.signal.aborted) setState({ busy: false, error: "" });
+    } catch (error) {
+      if (!controller.signal.aborted) setState({ busy: false, error: error.message });
+    } finally {
+      if (requestRef.current === controller) requestRef.current = null;
+    }
+  }
+
+  return <div className="inline-flex flex-col items-start gap-1"><button className="inline-flex items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100 disabled:opacity-60" disabled={state.busy} onClick={viewPhoto} type="button">
+    <span className="grid h-6 w-7 place-items-center rounded bg-cyan-100 text-cyan-700"><Icon className="h-3.5 w-3.5" name="camera" /></span>
+    {state.busy ? "Opening protected photo…" : representativePhotoAttribution(report) || "Submitted photo"}
+  </button>
+  {state.error && <span className="max-w-52 text-xs font-semibold text-rose-700" role="alert">{state.error}</span>}
+  </div>;
 }
 
 function CommunitySignals({ reports, compact = false }) {
@@ -123,15 +158,7 @@ function CommunitySignals({ reports, compact = false }) {
                 </td>
                 <td className="px-4 py-4">
                   {report.photo_url ? (
-                    <a
-                      className="inline-flex items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100"
-                      href={communityPhotoUrl(report.photo_url)}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      <span className="grid h-6 w-7 place-items-center rounded bg-cyan-100 text-cyan-700"><Icon className="h-3.5 w-3.5" name="camera" /></span>
-                      {representativePhotoAttribution(report) || "Submitted photo"}
-                    </a>
+                    <ProtectedEvidenceButton report={report}/>
                   ) : report.evidence_type === "DEMO_PHOTO_PLACEHOLDER" ? (
                     <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs font-semibold text-slate-600" title="Synthetic placeholder only — no citizen photo is stored">
                       <span className="grid h-6 w-7 place-items-center rounded bg-slate-200 text-slate-500"><Icon className="h-3.5 w-3.5" name="camera" /></span>

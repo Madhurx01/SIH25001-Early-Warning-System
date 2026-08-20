@@ -1,14 +1,29 @@
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.services.community_reports import get_community_reports
 from app.services.mock_data import get_villages
 from app.services.task_workflow import list_tasks
 from app.services.village_operations import get_operational_village, get_village_trend
+from app.services.auth import GOVT_OFFICER, require_roles
 
 
-router = APIRouter(prefix="/api/villages", tags=["villages"])
+router = APIRouter(
+    prefix="/api/villages",
+    tags=["villages"],
+    dependencies=[Depends(require_roles(GOVT_OFFICER))],
+)
+public_router = APIRouter(prefix="/api/public", tags=["public"])
+
+
+@public_router.get("/villages")
+async def public_villages() -> list[dict[str, str]]:
+    """Privacy-minimal village choices for the public citizen report form."""
+    return [
+        {"id": item["id"], "name": item["name"], "district": item["district"], "state": item["state"]}
+        for item in get_villages()
+    ]
 
 
 @router.get("")

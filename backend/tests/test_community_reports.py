@@ -3,13 +3,17 @@ import asyncio
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+from app.services.auth import DEMO_USERS, create_access_token, public_user
+
+
+OFFICER_HEADERS = {"Authorization": f"Bearer {create_access_token(public_user(DEMO_USERS[0]))}"}
 
 
 def test_community_reports_endpoint() -> None:
     async def get_reports():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-            return await client.get("/api/community-reports")
+            return await client.get("/api/community-reports", headers=OFFICER_HEADERS)
 
     response = asyncio.run(get_reports())
 
@@ -21,7 +25,7 @@ def test_community_report_response_structure() -> None:
     async def get_reports():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
-            return await client.get("/api/community-reports")
+            return await client.get("/api/community-reports", headers=OFFICER_HEADERS)
 
     reports = asyncio.run(get_reports()).json()
     required_fields = {

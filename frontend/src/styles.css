@@ -31,6 +31,18 @@ a {
   color: #0f172a;
 }
 
+.form-control {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-weight: 400;
+  color: #0f172a;
+  background: white;
+}
+
 .demo-map-marker-wrap { background: transparent; border: 0; }
 .demo-map-marker { display: grid; place-items: center; width: 32px; height: 32px; border: 3px solid white; border-radius: 50%; color: white; font-weight: 900; box-shadow: 0 2px 8px rgb(15 23 42 / .35); }
 .demo-map-marker.normal { background: #047857; }

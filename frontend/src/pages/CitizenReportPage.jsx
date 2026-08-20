@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import Icon from "../components/Icon.jsx";
-import { getVillages, submitCommunityReport } from "../services/api.js";
+import { getPublicVillages, submitCommunityReport } from "../services/api.js";
 import { buildCitizenReportFormData, CITIZEN_PHOTO_ACCEPT, selectCitizenPhoto } from "../utils/citizenReport.js";
 
 const categories = [
@@ -11,7 +11,7 @@ const categories = [
   ["SUSPECTED_MOSQUITO_BREEDING_SITE", "Possible mosquito-breeding environmental hazard"], ["OTHER_ENVIRONMENTAL_HAZARD", "Other"],
 ];
 
-function CitizenHeader() { return <header className="border-b border-teal-100 bg-white"><div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-4"><div className="grid h-10 w-10 place-items-center rounded-xl bg-teal-600 text-white"><Icon name="community"/></div><div><p className="font-bold text-slate-950">Community Hazard Reporting</p><p className="text-xs text-slate-500">SIH25001 demo service</p></div><a className="ml-auto text-xs font-bold text-teal-700" href="#/report-status">Check report status</a></div></header>; }
+function CitizenHeader() { return <header className="border-b border-teal-100 bg-white"><div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-4"><div className="grid h-10 w-10 place-items-center rounded-xl bg-teal-600 text-white"><Icon name="community"/></div><div><p className="font-black tracking-wide text-slate-950">AAPTIRAKSHAK</p><p className="text-xs text-slate-500">Community Hazard Reporting</p></div><div className="ml-auto flex gap-3"><a className="text-xs font-bold text-teal-700" href="#/report-status">Check status</a><a className="text-xs font-bold text-slate-600" href="#/login">Staff login</a></div></div></header>; }
 
 function CitizenReportPage() {
   const [villages, setVillages] = useState([]);
@@ -26,7 +26,7 @@ function CitizenReportPage() {
     const controller = new AbortController();
     setVillageLoad({ status: "loading", error: "" });
 
-    getVillages({}, controller.signal)
+    getPublicVillages(controller.signal)
       .then((loadedVillages) => {
         if (!active) return;
         setVillages(loadedVillages);

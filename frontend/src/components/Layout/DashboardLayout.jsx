@@ -2,16 +2,18 @@ import { useState } from "react";
 
 import DemoDataBanner from "../DemoDataBanner.jsx";
 import Icon from "../Icon.jsx";
+import { useAuth } from "../../auth/AuthContext.jsx";
 
 const navigation = [
   { id: "overview", label: "Overview", icon: "overview" },
-  { id: "community", label: "Community Reports", icon: "community" },
   { id: "villages", label: "Villages", icon: "village" },
   { id: "surveillance", label: "Surveillance", icon: "surveillance" },
   { id: "outlook", label: "4-Week Outlook", icon: "outlook" },
+  { id: "community", label: "Community Reports", icon: "community" },
+  { id: "staff-reports", label: "Staff Reports", icon: "staff" },
 ];
 
-function Sidebar({ activePage, onNavigate, mobileOpen, onClose }) {
+function Sidebar({ activePage, onNavigate, mobileOpen, onClose, onLogout, user }) {
   return (
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-72 transform flex-col bg-slate-950 text-white transition-transform duration-200 lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`} aria-label="Primary navigation">
       <div className="flex h-20 items-center gap-3 border-b border-white/10 px-6">
@@ -19,8 +21,8 @@ function Sidebar({ activePage, onNavigate, mobileOpen, onClose }) {
           <Icon name="activity" className="h-6 w-6" strokeWidth={2.2} />
         </div>
         <div>
-          <p className="text-xs font-bold tracking-[0.18em] text-teal-300">SIH25001</p>
-          <p className="mt-0.5 text-sm font-semibold text-white">Health Surveillance</p>
+          <p className="text-xs font-black tracking-[0.14em] text-teal-300">AAPTIRAKSHAK</p>
+          <p className="mt-0.5 text-xs font-semibold text-white">Government Operations</p>
         </div>
         <button className="ml-auto rounded-lg p-2 text-slate-300 hover:bg-white/10 lg:hidden" onClick={onClose} aria-label="Close navigation">
           <Icon name="close" />
@@ -55,6 +57,8 @@ function Sidebar({ activePage, onNavigate, mobileOpen, onClose }) {
         </a>
       </div>
 
+      <div className="mx-4 mb-2 rounded-xl border border-white/10 p-3"><p className="truncate text-sm font-bold">{user.name}</p><p className="text-xs text-slate-400">Government Officer</p><button className="mt-3 flex w-full items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm font-bold hover:bg-white/15" onClick={onLogout}><Icon className="h-4 w-4" name="logout"/> Logout</button></div>
+
       <div className="m-4 rounded-2xl border border-white/10 bg-white/5 p-4">
         <div className="flex items-center gap-2 text-teal-300">
           <Icon name="shield" className="h-4 w-4" />
@@ -68,12 +72,14 @@ function Sidebar({ activePage, onNavigate, mobileOpen, onClose }) {
 
 function DashboardLayout({ activePage, onNavigate, connection, children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, logout } = useAuth();
   const connected = connection === "connected";
+  function signOut() { logout(); window.location.hash = "#/login"; }
 
   return (
     <div className="min-h-screen bg-slate-100">
       {mobileOpen && <button className="fixed inset-0 z-30 bg-slate-950/55 lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close navigation overlay" />}
-      <Sidebar activePage={activePage} onNavigate={onNavigate} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
+      <Sidebar activePage={activePage} onNavigate={onNavigate} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} onLogout={signOut} user={user} />
 
       <div className="lg:pl-72">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -83,10 +89,10 @@ function DashboardLayout({ activePage, onNavigate, connection, children }) {
             </button>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="hidden rounded-md bg-slate-900 px-2 py-1 text-[10px] font-bold tracking-[0.14em] text-white sm:inline">SIH25001</span>
-                <p className="truncate text-sm font-bold text-slate-900 sm:text-base">Water-Borne Disease Early Warning System</p>
+                <span className="hidden rounded-md bg-slate-900 px-2 py-1 text-[10px] font-bold tracking-[0.14em] text-white sm:inline">AAPTIRAKSHAK</span>
+                <p className="truncate text-sm font-bold text-slate-900 sm:text-base">Community Water Health Early Warning & Response System</p>
               </div>
-              <p className="mt-1 hidden text-xs text-slate-500 sm:block">Government monitoring dashboard · Phase 2B interactive operations</p>
+              <p className="mt-1 hidden text-xs text-slate-500 sm:block">Protected government monitoring dashboard</p>
             </div>
             <div className="ml-auto flex items-center gap-3">
               <span className="hidden rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800 md:inline">Demo / Synthetic Data</span>
