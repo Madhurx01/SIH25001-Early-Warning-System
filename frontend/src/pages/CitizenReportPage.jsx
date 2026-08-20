@@ -13,17 +13,24 @@ const categories = [
 
 function CitizenHeader() { return <header className="border-b border-teal-100 bg-white"><div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-4"><div className="grid h-10 w-10 place-items-center rounded-xl bg-teal-600 text-white"><Icon name="community"/></div><div><p className="font-black tracking-wide text-slate-950">AAPTIRAKSHAK</p><p className="text-xs text-slate-500">Community Hazard Reporting</p></div><div className="ml-auto flex gap-3"><a className="text-xs font-bold text-teal-700" href="#/report-status">Check status</a><a className="text-xs font-bold text-slate-600" href="#/login">Staff login</a></div></div></header>; }
 
+export function VillageLoadNotice({ status, onRetry }) {
+  if (status === "loading") return <div className="flex items-center gap-3 rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-semibold text-cyan-900" role="status"><span className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-700/25 border-t-cyan-700 motion-reduce:animate-none" aria-hidden="true"/>Connecting to the server…</div>;
+  if (status === "error") return <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800" role="alert"><span>We couldn't reach the server right now. Please try again shortly.</span><button className="rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-bold hover:bg-rose-100" onClick={onRetry} type="button">Retry</button></div>;
+  return null;
+}
 function CitizenReportPage() {
   const [villages, setVillages] = useState([]);
   const [form, setForm] = useState({ category: "", villageId: "", description: "", latitude: null, longitude: null, photo: null });
   const [preview, setPreview] = useState("");
   const [state, setState] = useState({ status: "editing", message: "", result: null });
   const [villageLoad, setVillageLoad] = useState({ status: "loading", error: "" });
+  const [villageLoadAttempt, setVillageLoadAttempt] = useState(0);
   const [locationState, setLocationState] = useState("idle");
 
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
+    setVillages([]);
     setVillageLoad({ status: "loading", error: "" });
 
     getPublicVillages(controller.signal)
@@ -36,7 +43,7 @@ function CitizenReportPage() {
         if (!active || error.name === "AbortError") return;
         setVillageLoad({
           status: "error",
-          error: "Village list is unavailable. Start the backend and reload this page.",
+          error: "We couldn't reach the server right now. Please try again shortly.",
         });
       });
 
@@ -44,7 +51,7 @@ function CitizenReportPage() {
       active = false;
       controller.abort();
     };
-  }, []);
+  }, [villageLoadAttempt]);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   function choosePhoto(event) {
@@ -68,7 +75,7 @@ function CitizenReportPage() {
   if (state.status === "success") return <div className="min-h-screen bg-teal-50"><CitizenHeader/><main className="mx-auto max-w-2xl px-5 py-12"><section className="rounded-3xl border border-emerald-200 bg-white p-7 text-center shadow-sm sm:p-10"><div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-emerald-700"><Icon className="h-8 w-8" name="check"/></div><h1 className="mt-5 text-3xl font-bold">Report received</h1><p className="mt-3 text-sm text-slate-500">Report ID</p><p className="mt-1 text-2xl font-black tracking-wide text-slate-950">{state.result.report_id}</p><span className="mt-4 inline-flex rounded-lg bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">Status: UNVERIFIED</span><p className="mx-auto mt-5 max-w-md text-sm leading-6 text-slate-600">Your report has been received and may be reviewed by the local health/water authority.</p>{state.result.clustered && <p className="mt-4 rounded-xl bg-cyan-50 px-4 py-3 text-sm font-semibold text-cyan-800">Your report was linked to an existing nearby community incident.</p>}<p className="mt-4 text-xs text-slate-500">No response time is promised. Demo session data resets when the backend restarts.</p><div className="mt-7 flex flex-wrap justify-center gap-3"><a className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white" href={`#/report-status?id=${state.result.report_id}`}>Check this report</a><button className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold" onClick={() => { setForm({ category: "", villageId: "", description: "", latitude: null, longitude: null, photo: null }); setPreview(""); setState({ status: "editing", message: "", result: null }); }}>Submit another</button></div></section></main></div>;
 
   return <div className="min-h-screen bg-teal-50"><CitizenHeader/><main className="mx-auto max-w-3xl px-5 py-8 sm:py-12"><div className="mb-7"><p className="text-sm font-bold text-teal-700">Simple, permission-based demo form</p><h1 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">Report a Community Health / Water Hazard</h1><p className="mt-3 text-base leading-7 text-slate-600">Share an environmental observation for official review. Photos are evidence only and are never used here to diagnose disease.</p></div><form className="space-y-6 rounded-3xl border border-teal-100 bg-white p-5 shadow-sm sm:p-8" onSubmit={submit}>
-    {villageLoad.error && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800" role="alert">{villageLoad.error}</p>}
+    <VillageLoadNotice status={villageLoad.status} onRetry={() => setVillageLoadAttempt((attempt) => attempt + 1)}/>
     {state.message && <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-800" role="alert">{state.message}</p>}
     <fieldset><legend className="text-base font-bold">1. What issue did you observe?</legend><div className="mt-3 grid gap-2 sm:grid-cols-2">{categories.map(([value, label]) => <label className={`flex cursor-pointer items-center gap-3 rounded-xl border p-3 text-sm font-semibold ${form.category === value ? "border-teal-500 bg-teal-50" : "border-slate-200"}`} key={value}><input required type="radio" name="category" value={value} checked={form.category === value} onChange={(e) => setForm({ ...form, category: e.target.value })}/>{label}</label>)}</div></fieldset>
     <div><label className="text-base font-bold" htmlFor="photo">2. Photo evidence <span className="font-normal text-slate-400">(optional)</span></label><input className="mt-3 block w-full rounded-xl border border-slate-300 p-3 text-sm" id="photo" type="file" accept={CITIZEN_PHOTO_ACCEPT} capture="environment" onChange={choosePhoto}/><p className="mt-2 text-xs text-slate-500">JPEG, PNG, WebP, or GIF; maximum 5 MB. No computer vision or medical diagnosis is performed.</p>{preview && <img className="mt-4 max-h-72 w-full rounded-2xl border border-slate-200 object-contain" src={preview} alt="Preview of selected community hazard evidence"/>}</div>

@@ -59,7 +59,7 @@ function DashboardPage({ onConnectionChange }) {
         <section className="mx-auto max-w-2xl rounded-2xl border border-rose-200 bg-white p-8 text-center shadow-sm">
           <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-rose-50 text-rose-700"><Icon name="warning" /></div>
           <h1 className="mt-4 text-xl font-bold text-slate-950">Dashboard data is temporarily unavailable</h1>
-          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600">The dashboard could not reach the FastAPI backend. Start the backend on port 8000, then try again. The page will remain stable while the service is offline.</p>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-600">We couldn't reach the server right now. Please try again shortly.</p>
           <button className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800" onClick={loadDashboard}><Icon className="h-4 w-4" name="refresh" />Retry connection</button>
         </section>
       </div>

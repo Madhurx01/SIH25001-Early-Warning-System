@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 import { getCurrentUser, loginStaff } from "../services/api.js";
+import { BackendConnectionScreen } from "../components/BackendReadinessGate.jsx";
 import {
   AUTH_INVALIDATED_EVENT,
   clearStoredToken,
@@ -14,12 +15,56 @@ import {
 
 const AuthContext = createContext(null);
 
+export async function restoreAuthSession(token, {
+  loadUser = getCurrentUser,
+  getToken = getStoredToken,
+  tokenExpired = isTokenExpired,
+} = {}) {
+  try {
+    const user = await loadUser();
+    if (getToken() !== token) return { status: "stale" };
+    if (tokenExpired(token)) return { status: "expired" };
+    return { status: "authenticated", user };
+  } catch (error) {
+    const currentToken = getToken();
+    if (error?.status === 401) {
+      return currentToken && currentToken !== token
+        ? { status: "stale", error }
+        : { status: "unauthorized", error };
+    }
+    if (currentToken !== token) return { status: "stale", error };
+    return { status: "unavailable", error };
+  }
+}
+
+export function AuthRestorationContent({ status, onRetry, children }) {
+  if (status === "unavailable") return <BackendConnectionScreen status="unavailable" onRetry={onRetry}/>;
+  if (status === "recovering") return <BackendConnectionScreen status="connecting" onRetry={onRetry}/>;
+  return children;
+}
+
 export function AuthProvider({ children }) {
   const [state, setState] = useState({ status: "loading", user: null });
+  const [restorationAttempt, setRestorationAttempt] = useState(0);
 
   const logout = useCallback(() => {
     clearStoredToken();
     setState({ status: "unauthenticated", user: null });
+  }, []);
+
+  const applyRestoration = useCallback((result, token) => {
+    if (result.status === "authenticated") {
+      setState({ status: "authenticated", user: result.user });
+    } else if (result.status === "unavailable") {
+      setState({ status: "unavailable", user: null });
+    } else if (result.status === "expired" || result.status === "unauthorized") {
+      handleCurrentTokenFailure(token, logout);
+    }
+  }, [logout]);
+
+  const retryRestoration = useCallback(() => {
+    setState({ status: "recovering", user: null });
+    setRestorationAttempt((attempt) => attempt + 1);
   }, []);
 
   useEffect(() => {
@@ -30,15 +75,11 @@ export function AuthProvider({ children }) {
       return;
     }
     let active = true;
-    getCurrentUser()
-      .then((user) => {
-        if (!active || getStoredToken() !== token) return;
-        if (isTokenExpired(token)) logout();
-        else setState({ status: "authenticated", user });
-      })
-      .catch(() => { if (active) handleCurrentTokenFailure(token, logout); });
+    restoreAuthSession(token).then((result) => {
+      if (active) applyRestoration(result, token);
+    });
     return () => { active = false; };
-  }, [logout]);
+  }, [applyRestoration, restorationAttempt]);
 
   useEffect(() => {
     const handler = () => logout();
@@ -57,13 +98,9 @@ export function AuthProvider({ children }) {
             logout();
             return;
           }
-          getCurrentUser()
-            .then((user) => {
-              if (!active || getStoredToken() !== token) return;
-              if (isTokenExpired(token)) logout();
-              else setState({ status: "authenticated", user });
-            })
-            .catch(() => { if (active) handleCurrentTokenFailure(token, logout); });
+          restoreAuthSession(token).then((result) => {
+            if (active) applyRestoration(result, token);
+          });
         },
       });
     };
@@ -72,7 +109,7 @@ export function AuthProvider({ children }) {
       active = false;
       window.removeEventListener("storage", handler);
     };
-  }, [logout]);
+  }, [applyRestoration, logout]);
 
   useEffect(() => {
     if (state.status !== "authenticated") return undefined;
@@ -91,7 +128,11 @@ export function AuthProvider({ children }) {
     return session.user;
   }, [logout]);
 
-  return <AuthContext.Provider value={{ ...state, login, logout }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ ...state, login, logout }}>
+      <AuthRestorationContent status={state.status} onRetry={retryRestoration}>{children}</AuthRestorationContent>
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

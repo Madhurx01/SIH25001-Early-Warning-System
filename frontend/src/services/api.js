@@ -1,31 +1,38 @@
 import { getStoredToken, handleCurrentTokenFailure, invalidateSession } from "../auth/session.js";
+import {
+  createBackendUnavailableError,
+  isAbortError,
+  isTransientBackendError,
+  markTransientBackendError,
+  retryTransientOperation,
+} from "../utils/backendReadiness.js";
 
 const API_BASE_URL = (
   import.meta.env?.VITE_API_BASE_URL || "http://localhost:8000"
 ).replace(/\/$/, "");
 
-export async function getHealth(signal) {
-  const response = await fetch(`${API_BASE_URL}/api/health`, { signal });
-
-  if (!response.ok) {
-    throw new Error(`Health check failed with status ${response.status}`);
-  }
-
-  return response.json();
+export function getHealth(signal, retryOptions) {
+  return requestWithTransientRetry("/api/health", { signal }, {}, retryOptions);
 }
 
 async function requestResponse(path, options = {}, { protectedRequest = false } = {}) {
   const token = protectedRequest ? getStoredToken() : "";
   const headers = new Headers(options.headers || {});
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+  } catch (error) {
+    if (isAbortError(error, options.signal)) throw error;
+    throw markTransientBackendError(error);
+  }
   if (response.status === 401 && protectedRequest) {
     handleCurrentTokenFailure(token, () => invalidateSession());
   }
   return response;
 }
 
-async function request(path, options = {}, requestOptions = {}) {
+async function requestOnce(path, options = {}, requestOptions = {}) {
   const response = await requestResponse(path, options, requestOptions);
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
@@ -36,20 +43,38 @@ async function request(path, options = {}, requestOptions = {}) {
   return response.json();
 }
 
-export function loginStaff(email, password) {
-  return request("/api/auth/login", {
+async function requestWithTransientRetry(path, options = {}, requestOptions = {}, retryOptions = {}) {
+  try {
+    return await retryTransientOperation(
+      () => requestOnce(path, options, requestOptions),
+      { ...retryOptions, signal: options.signal },
+    );
+  } catch (error) {
+    if (isAbortError(error, options.signal) || !isTransientBackendError(error)) throw error;
+    throw createBackendUnavailableError(error);
+  }
+}
+
+function request(path, options = {}, requestOptions = {}) {
+  const method = (options.method || "GET").toUpperCase();
+  if (method === "GET") return requestWithTransientRetry(path, options, requestOptions);
+  return requestOnce(path, options, requestOptions);
+}
+
+export function loginStaff(email, password, retryOptions) {
+  return requestWithTransientRetry("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
-  });
+  }, {}, retryOptions);
 }
 
-export function getCurrentUser(signal) {
-  return request("/api/auth/me", { signal }, { protectedRequest: true });
+export function getCurrentUser(signal, retryOptions) {
+  return requestWithTransientRetry("/api/auth/me", { signal }, { protectedRequest: true }, retryOptions);
 }
 
-export function getPublicVillages(signal) {
-  return request("/api/public/villages", { signal });
+export function getPublicVillages(signal, retryOptions) {
+  return requestWithTransientRetry("/api/public/villages", { signal }, {}, retryOptions);
 }
 
 export function getOverview(signal) {
