@@ -10,6 +10,12 @@ from app.routes.staff_reports import router as staff_reports_router
 from app.routes.villages import router as villages_router
 from app.routes.villages import public_router as public_villages_router
 
+ALLOWED_CORS_ORIGINS = (
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://aaptirakshak.vercel.app",
+)
+
 
 app = FastAPI(
     title="AAPTIRAKSHAK API",
@@ -19,10 +25,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=ALLOWED_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
